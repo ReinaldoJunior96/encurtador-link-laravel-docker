@@ -68,6 +68,7 @@ class LinkController extends Controller
     public function redirect($code)
     {
         try {
+
             Log::info('Tentando redirecionar para link original', ['short_code' => $code]);
             $link = Link::where('short_code', $code)->first();
 
