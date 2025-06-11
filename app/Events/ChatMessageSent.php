@@ -17,16 +17,22 @@ class ChatMessageSent implements ShouldBroadcastNow
 
     public $message;
     public $user;
+    public $to_id;
 
-    public function __construct($message, $user = null)
+    public function __construct($message, $user = null, $to_id)
     {
         $this->message = $message;
         $this->user = $user;
+        $this->to_id = $to_id;
     }
 
     public function broadcastOn()
     {
-        // Canal público
-        return new \Illuminate\Broadcasting\Channel('public.chat');
+        if (empty($this->to_id)) {
+            // Chat público
+            return new \Illuminate\Broadcasting\Channel('public.chat');
+        }
+        // Chat privado
+        return new \Illuminate\Broadcasting\PrivateChannel('chat.' . $this->user->id . '.' . $this->to_id);
     }
 }

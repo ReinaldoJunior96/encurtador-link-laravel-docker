@@ -28,11 +28,18 @@
       </div>
       <div id="chat-messages"
         class="flex-1 px-8 py-6 space-y-4 overflow-y-auto h-[450px] md:h-[600px] bg-gradient-to-br from-pink-50 to-orange-50">
-        <!-- Mensagens aparecerão aqui -->
+        @foreach($messages as $msg)
+          <div class="{{ $msg->from_id === auth()->id() ? 'flex justify-end' : 'flex justify-start' }}">
+            <div class="{{ $msg->from_id === auth()->id() ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white' : 'bg-pink-100 text-gray-800' }} px-5 py-3 rounded-xl max-w-xs max-w-[320px] md:max-w-[400px] shadow-lg mb-2 break-words overflow-auto">
+              <span class="block text-xs font-bold mb-1">{{ $msg->from_id === auth()->id() ? 'Você' : ($msg->from->name ?? 'Usuário') }}</span>
+              {{ $msg->message }}
+            </div>
+          </div>
+        @endforeach
       </div>
       <div id="chat-typing" class="px-8 py-2 text-sm text-pink-500 font-semibold" style="display:none;"></div>
       <div class="flex items-center gap-3 px-8 py-6 bg-white border-t border-pink-100">
-        <input type="text" id="chat-username" placeholder="Seu nome..." class="w-40 px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none text-gray-800 bg-pink-50" required />
+        <input type="hidden" id="chat-username" value="{{ auth()->user()->name }}" />
         <input type="text" id="chat-input" placeholder="Digite sua mensagem..." class="flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none text-gray-800 bg-pink-50" required />
         <button id="chat-send-btn" class="bg-gradient-to-r from-pink-500 to-orange-400 text-white font-semibold px-6 py-3 rounded-lg hover:from-pink-600 hover:to-orange-500 transition-all duration-300 shadow-lg flex items-center gap-2">
           <span>Enviar</span>
@@ -45,30 +52,22 @@
   </main>
 </div>
 <script>
-  
   const input = document.getElementById('chat-input');
   const sendBtn = document.getElementById('chat-send-btn');
   const messages = document.getElementById('chat-messages');
-  const usernameInput = document.getElementById('chat-username');
-
-  // Gera um nome aleatório único por aba se não existir
-  if (!sessionStorage.getItem('chat-username')) {
-    const randomName = 'Usuário_' + Math.random().toString(36).substring(2, 8);
-    sessionStorage.setItem('chat-username', randomName);
-    usernameInput.value = randomName;
-  } else {
-    usernameInput.value = sessionStorage.getItem('chat-username');
-  }
-
-  // Permite o usuário editar o nome, mas sempre salva por aba
-  usernameInput.addEventListener('change', function() {
-    sessionStorage.setItem('chat-username', usernameInput.value.trim());
-  });
+  const username = document.getElementById('chat-username').value;
 
   function addMessage(text, user, isSelf) {
+    // Evita adicionar objetos ou duplicar nomes
+    if (typeof text === 'object') {
+      text = JSON.stringify(text);
+    }
+    if (typeof user === 'object') {
+      user = user?.name || 'Usuário';
+    }
     const div = document.createElement('div');
     div.className = isSelf ? 'flex justify-end' : 'flex justify-start';
-    div.innerHTML = `<div class='${isSelf ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white' : 'bg-pink-100 text-gray-800'} px-5 py-3 rounded-xl max-w-xs shadow-lg mb-2'>
+    div.innerHTML = `<div class='${isSelf ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white' : 'bg-pink-100 text-gray-800'} px-5 py-3 rounded-xl max-w-xs max-w-[320px] md:max-w-[400px] shadow-lg mb-2'>
             <span class='block text-xs font-bold mb-1'>${user}</span>${text}
         </div>`;
     messages.appendChild(div);
@@ -77,22 +76,21 @@
 
   function sendMessage(e) {
     if (e) e.preventDefault();
-    if (input.value.trim() === '' || usernameInput.value.trim() === '') return;
-    sessionStorage.setItem('chat-username', usernameInput.value.trim());
+    if (input.value.trim() === '' || username.trim() === '') return;
     fetch('/chat/message', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
       },
-      body: JSON.stringify({ message: input.value, user: usernameInput.value }),
+      body: JSON.stringify({ message: input.value, user: username }),
     })
     .then(res => {
       if (!res.ok) throw new Error('Erro ao enviar mensagem');
       return res.json();
     })
     .then(data => {
-      addMessage(input.value, usernameInput.value, true);
+      addMessage(input.value, username, true);
       input.value = '';
     })
     .catch(err => {
@@ -119,7 +117,7 @@
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
         },
-        body: JSON.stringify({ user: usernameInput.value })
+        body: JSON.stringify({ user: username })
       });
     }
     clearTimeout(typingTimeout);
@@ -136,24 +134,30 @@
     }, 1500);
   });
 
-  // Substitui a inicialização direta do Echo por um listener seguro
   document.addEventListener('DOMContentLoaded', function() {
     function waitForEchoAndInit() {
       if (window.Echo && typeof window.Echo.channel === 'function') {
-        window.Echo.channel('public.chat')
-          .listen('ChatMessageSent', (e) => {
-            addMessage(e.message, e.user || 'Visitante', false);
-          })
-          .listen('UserTyping', (e) => {
-            const typingDiv = document.getElementById('chat-typing');
-            if (e.user && e.user !== usernameInput.value) {
-              typingDiv.textContent = `${e.user} está digitando...`;
-              typingDiv.style.display = 'block';
-            } else {
-              typingDiv.textContent = '';
-              typingDiv.style.display = 'none';
-            }
-          });
+        // Força o subscribe ao canal correto e mostra no console
+        const channel = window.Echo.channel('public.chat');
+        console.log('Subscribing to public.chat', channel);
+        channel.listen('ChatMessageSent', (e) => {
+          console.log('Recebido ChatMessageSent:', e);
+          // Evita duplicar mensagem se já existe no DOM
+          const lastMsg = messages.lastElementChild;
+          if (!lastMsg || lastMsg.textContent.trim() !== e.message.trim() || (e.user?.name !== username)) {
+            addMessage(e.message, e.user?.name || 'Visitante', e.user?.name === username);
+          }
+        })
+        .listen('UserTyping', (e) => {
+          const typingDiv = document.getElementById('chat-typing');
+          if (e.user && e.user !== username) {
+            typingDiv.textContent = `${e.user} está digitando...`;
+            typingDiv.style.display = 'block';
+          } else {
+            typingDiv.textContent = '';
+            typingDiv.style.display = 'none';
+          }
+        });
       } else {
         setTimeout(waitForEchoAndInit, 100);
       }

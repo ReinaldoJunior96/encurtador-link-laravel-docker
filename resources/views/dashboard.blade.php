@@ -10,8 +10,10 @@
           <span class="text-xl font-bold text-gray-800">LinkShrink</span>
         </div>
         <div class="flex items-center gap-4">
+          <a href="{{ route('users') }}" class="text-pink-600 hover:text-pink-800 font-semibold px-3 py-2 rounded-lg hover:bg-pink-50 transition">Usuários</a>
+          <a href="{{ route('chat') }}" class="text-orange-500 hover:text-orange-700 font-semibold px-3 py-2 rounded-lg hover:bg-orange-50 transition">Chat Público</a>
           <span class="text-gray-700 font-medium">Olá, {{ Auth::user()->name ?? 'Usuário' }}</span>
-          <form method="POST">
+          <form method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit" class="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Sair">
               <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-log-out" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
