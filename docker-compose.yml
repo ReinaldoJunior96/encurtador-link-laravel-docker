@@ -14,6 +14,7 @@ services:
     #   - db
     ports:
       - "8090:8090"
+      - "6001:6001"
     restart: unless-stopped
 
   webserver:
@@ -45,7 +46,7 @@ services:
 
 networks:
   encurtador_link_default:
-    external: true
+    driver: bridge
 
 volumes:
   dbdata:
