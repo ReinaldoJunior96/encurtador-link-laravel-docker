@@ -33,5 +33,8 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('123456'),
             'role' => 'funcionario',
         ]);
+
+        $this->call(\Database\Seeders\FormularioExemploSeeder::class);
+        $this->call(\Database\Seeders\FormularioExemploRespostasSeeder::class);
     }
 }
