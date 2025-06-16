@@ -56,14 +56,18 @@
   const sendBtn = document.getElementById('chat-send-btn');
   const messages = document.getElementById('chat-messages');
   const username = document.getElementById('chat-username').value;
+  const userId = {{ auth()->id() }};
 
   function addMessage(text, user, isSelf) {
-    // Evita adicionar objetos ou duplicar nomes
-    if (typeof text === 'object') {
-      text = JSON.stringify(text);
+    // Corrige exibição de [object Object] e nomes inválidos
+    if (typeof text === 'object' && text !== null) {
+      text = (typeof text.message === 'string') ? text.message : JSON.stringify(text);
     }
-    if (typeof user === 'object') {
-      user = user?.name || 'Usuário';
+    if (typeof user === 'object' && user !== null) {
+      user = (typeof user.name === 'string') ? user.name : 'Usuário';
+    }
+    if (!user || user === '[object Object]') {
+      user = 'Usuário';
     }
     const div = document.createElement('div');
     div.className = isSelf ? 'flex justify-end' : 'flex justify-start';
@@ -90,7 +94,6 @@
       return res.json();
     })
     .then(data => {
-      addMessage(input.value, username, true);
       input.value = '';
     })
     .catch(err => {
@@ -141,12 +144,20 @@
         const channel = window.Echo.channel('public.chat');
         console.log('Subscribing to public.chat', channel);
         channel.listen('ChatMessageSent', (e) => {
-          console.log('Recebido ChatMessageSent:', e);
-          // Evita duplicar mensagem se já existe no DOM
-          const lastMsg = messages.lastElementChild;
-          if (!lastMsg || lastMsg.textContent.trim() !== e.message.trim() || (e.user?.name !== username)) {
-            addMessage(e.message, e.user?.name || 'Visitante', e.user?.name === username);
+          let senderName = 'Usuário';
+          let isSelf = false;
+          if (e && e.user && typeof e.user.id !== 'undefined') {
+            if (e.user.id === userId) {
+              senderName = e.user.name;
+              isSelf = true;
+            } else {
+              senderName = e.user.name || 'Usuário';
+            }
+          } else if (e && typeof e.user === 'string') {
+            senderName = e.user;
           }
+          let msgText = e && typeof e.message === 'object' && e.message !== null ? (e.message.message || JSON.stringify(e.message)) : e.message;
+          addMessage(msgText, senderName, isSelf);
         })
         .listen('UserTyping', (e) => {
           const typingDiv = document.getElementById('chat-typing');

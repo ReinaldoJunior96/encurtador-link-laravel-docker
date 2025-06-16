@@ -16,7 +16,6 @@ class StripeController extends Controller
     {
         try {
             Stripe::setApiKey(env('STRIPE_SECRET'));
-
             $originalUrl = $request->input('url');
 
             if (!$originalUrl) {

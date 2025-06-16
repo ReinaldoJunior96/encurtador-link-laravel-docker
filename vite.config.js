@@ -13,6 +13,13 @@ export default defineConfig({
             refresh: true,
         }),
         tailwindcss(),
-     
     ],
+    //  server: {
+    //     host: '0.0.0.0',
+    //     port: 5173,
+    //     hmr: {
+    //         host: process.env.VITE_ASSET_URL?.replace(/^https?:\/\//, ''),
+    //     },
+    // },
+    // base: process.env.VITE_ASSET_URL ? process.env.VITE_ASSET_URL + '/' : '/',
 });
