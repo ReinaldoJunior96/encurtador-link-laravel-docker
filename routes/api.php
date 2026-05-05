@@ -3,11 +3,15 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\LinkController;
+use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\StripeController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// Rota de status da aplicação
+Route::get('/status', [StatusController::class, 'status']);
 
 // Rota para encurtar link
 Route::post('/shorten', [LinkController::class, 'shorten']);
